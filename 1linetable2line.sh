@@ -19,8 +19,11 @@ grep -q "$2" "$file"
 # Delete all lines from <w:tbl> up to </w:tbl>
 # inside which this lines ($2) is
 
+o="$(grep -nE "<w:t>.*${text}" "$file" | head -n1)"
+orig_text="$(echo "$o" | awk -F '<w:t>' '{print $NF}' | awk -F '</w:t>' '{print $1}')"
+test -n "$orig_text"
 # Number of line where $text is
-n1="$(grep -nE "<w:t>.*${text}" "$file" | head -n1 | awk -F ':' '{print $1}')"
+n1="$(echo "$o" | awk -F ':' '{print $1}')"
 c=0
 while read -r line
 do
@@ -48,9 +51,6 @@ done <<< "$(awk "NR >= ${n1}" "$file")"
 # Number of line where "</w:tbl>" is
 n3=$((n1 + c))
 
-# Now we need to delete lines from n2 to n3 and insert new line(s) in position n2
-sed -i'' -e "${n2},${n3}d" "$file"
-
 # 164 is a document-specific number of style applied to text
 insert="
     <!-- begin by script -->
@@ -63,14 +63,15 @@ insert="
         <w:rPr>
           <w:lang w:val=\"en-GB\"/>
         </w:rPr>
-        <w:t>${text}</w:t>
+        <w:t>${orig_text}</w:t>
       </w:r>
     </w:p>
     <!-- end by script -->
 "
 
+# Now we need to delete lines from n2 to n3 and insert new line(s) in position n2
 # insert $insert between lines n2 and n3
-cat <(awk "NR <= ${n2}" "$file") <(echo "$insert") <(awk "NR >= ${n3}" "$file") > "$file".new
+cat <(awk "NR < ${n2}" "$file") <(echo "$insert") <(awk "NR > ${n3}" "$file") > "$file".new
 mv "$file" "$file".orig
 # save diffs for potential rollback (patch -R)
 tmp="$(mktemp --suffix=".diff")"
