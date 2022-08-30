@@ -53,6 +53,7 @@ sed -i'' -e "${n2},${n3}d" "$file"
 
 # 164 is a document-specific number of style applied to text
 insert="
+    <!-- begin by script -->
     <w:p>
       <w:pPr>
         <w:pStyle w:val=\"164\"/>
@@ -65,10 +66,15 @@ insert="
         <w:t>${text}</w:t>
       </w:r>
     </w:p>
+    <!-- end by script -->
 "
 
 # insert $insert between lines n2 and n3
 cat <(awk "NR <= ${n2}" "$file") <(echo "$insert") <(awk "NR >= ${n3}" "$file") > "$file".new
 mv "$file" "$file".orig
 diff -u --color "$file".orig "$file".new || :
-mv "$file".new "$file" 
+mv "$file".new "$file"
+
+# sometimes tags get broken, e.g. an opened <w:p> is not deleted,
+# verify manually all places where <!-- begin by script --> was inserted
+#geany "$file" || xdg-open "$file"
