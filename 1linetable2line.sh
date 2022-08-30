@@ -74,7 +74,9 @@ cat <(awk "NR <= ${n2}" "$file") <(echo "$insert") <(awk "NR >= ${n3}" "$file") 
 mv "$file" "$file".orig
 # save diffs for potential rollback (patch -R)
 tmp="$(mktemp --suffix=".diff")"
-diff -u --color "$file".orig "$file".new | tee "$tmp" || :
+# show colored diff and then save it
+diff -u --color "$file".orig "$file".new || :
+diff -u "$file".orig "$file".new > "$tmp" || :
 mv "$file".new "$file"
 
 # sometimes tags get broken, e.g. an opened <w:p> is not deleted,
